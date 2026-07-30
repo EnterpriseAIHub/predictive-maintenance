@@ -1,0 +1,15 @@
+# Service runtime dependencies for this phase (API, config, logging,
+# persistence wiring). ML dependencies (lightgbm, shap, pandas, numpy,
+# scikit-learn, matplotlib) are added in requirements-ml.txt once the
+# modeling phase begins — kept out for now so this phase's dependency
+# footprint matches what it actually uses.
+
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+pydantic==2.9.2
+pydantic-settings==2.5.2
+sqlalchemy==2.0.35
+alembic==1.13.3
+psycopg2-binary==2.9.9
+redis==5.0.8
+structlog==24.4.0

@@ -1,0 +1,37 @@
+# Lets this repo run fully standalone: `docker-compose up` here needs
+# no other platform repo present (NFR1 / architecture doc principle
+# #1 — a recruiter can clone just this repo and run it). Its own
+# Postgres and Redis, not shared with any other repo's compose setup.
+
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+psycopg2://postgres:postgres@db:5432/predictive_maintenance
+      REDIS_URL: redis://cache:6379/0
+    depends_on:
+      - db
+      - cache
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: predictive_maintenance
+    ports:
+      - "5432:5432"
+    volumes:
+      - pm_db_data:/var/lib/postgresql/data
+
+  cache:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+volumes:
+  pm_db_data:
