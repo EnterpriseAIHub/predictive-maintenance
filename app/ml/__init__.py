@@ -4,3 +4,7 @@
 # explanation), which is what makes it independently unit-testable and
 # reusable identically from both the real-time and batch inference
 # paths. Added in the phase that implements the model.
+# Feature engineering (features.py) and the offline training pipeline
+# (training/) are implemented. SHAP explainability (Phase 4) and the
+# inference wrapper (Phase 5) come next.
+ 

@@ -1,0 +1,10 @@
+# ML dependencies, added as each phase needs them — pandas/numpy for
+# feature engineering (Phase 2). scikit-learn/lightgbm/matplotlib are
+# added now for the training pipeline (Phase 3). shap is added in
+# Phase 4 when explainability is implemented, not before.
+
+pandas==2.2.3
+numpy==2.1.2
+scikit-learn==1.5.2
+lightgbm==4.5.0
+matplotlib==3.9.2

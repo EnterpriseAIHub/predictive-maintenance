@@ -28,6 +28,11 @@ class Settings(BaseSettings):
     failure_risk_threshold: float = 0.7
     prediction_window_days: int = 7
 
+    # Feature engineering — the lookback window callers pass to
+    # sensor_reading_repository.get_recent() before handing readings
+    # to app.ml.features.build_feature_vector().
+    feature_lookback_hours: int = 168  # 7 days
+
 
 @lru_cache
 def get_settings() -> Settings:
