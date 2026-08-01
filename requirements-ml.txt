@@ -8,3 +8,4 @@ numpy==2.1.2
 scikit-learn==1.5.2
 lightgbm==4.5.0
 matplotlib==3.9.2
+shap==0.52.0
