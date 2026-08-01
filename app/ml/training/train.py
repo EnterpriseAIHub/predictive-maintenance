@@ -23,11 +23,13 @@ from sklearn.calibration import calibration_curve
 from sklearn.metrics import average_precision_score, roc_auc_score
 from sklearn.model_selection import GroupShuffleSplit
 
+
+from app.config import settings
 from app.ml.features import FEATURE_COLUMNS
 from app.ml.training.dataset import generate_synthetic_training_data
 
 # Folder where every trained model version will be stored.
-REGISTRY_DIR = Path(__file__).resolve().parents[3] / "model" / "registry"
+REGISTRY_DIR = settings.model_registry_dir
 
 # Parameters used while training the LightGBM model.
 _MODEL_PARAMS = {
