@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     # now so the schema of "what this service is configured by" is
     # visible from day one)
     failure_risk_threshold: float = 0.7
+    urgent_priority_threshold: float = 0.9
     prediction_window_days: int = 7
 
     # Feature engineering — the lookback window callers pass to

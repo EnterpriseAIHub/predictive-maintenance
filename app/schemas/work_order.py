@@ -26,10 +26,14 @@ class WorkOrderPriority(StrEnum):
     URGENT = "urgent"
 
 
+
 class WorkOrder(BaseModel):
     id: str
     equipment_id: str
     opened_by: str  # "system" | "human"
     priority: WorkOrderPriority
+    recommended_priority: WorkOrderPriority | None = None
     status: WorkOrderStatus
     created_at: datetime
+    priority_approved_at: datetime | None = None
+    priority_approved_by: str | None = None

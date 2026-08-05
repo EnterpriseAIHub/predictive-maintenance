@@ -1,4 +1,5 @@
-# Business logic lives here: threshold evaluation, work-order creation,
-# the urgent-priority human-approval gate. Added in the phase that
-# implements inference, per the architecture doc's layering (API layer
-# stays free of business rules; this is where they belong instead).
+# Business logic: risk_policy.py (pure threshold rules),
+# work_order_service.py (work-order creation + the urgent-priority
+# approval gate, FR4), and prediction_service.py (orchestrates the
+# data layer + ML layer into one real-time prediction operation).
+ 

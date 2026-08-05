@@ -4,6 +4,10 @@ from sqlalchemy.orm import Session
 from app.data.models.work_order import WorkOrder, WorkOrderStatus
 
 
+def get_by_id(db: Session, work_order_id: str) -> WorkOrder | None:
+    return db.get(WorkOrder, work_order_id)
+
+
 def create(db: Session, work_order: WorkOrder) -> WorkOrder:
     """Adds and flushes (not commits) — see sensor_reading_repository
     for why the transaction boundary belongs to the caller."""
