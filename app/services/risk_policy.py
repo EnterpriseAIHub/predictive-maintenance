@@ -1,8 +1,5 @@
 """The risk-to-priority policy: the one place "how risky is risky
-enough to act on" is decided. Deliberately a pure function — no DB, no
-model, no I/O — so the business rule itself is unit-testable without
-needing a database or a trained model, and so a future change to the
-thresholds (a business decision) never requires touching orchestration
+enough to act on" is decided. Deliberately a pure function — no DB, no model, no I/O — so the business rule itself is unit-testable without needing a database or a trained model, and so a future change to the thresholds (a business decision) never requires touching orchestration
 code.
 """
 

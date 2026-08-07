@@ -1,16 +1,10 @@
-"""The inference wrapper — the single ML-layer entry point the
-service layer (Phase 6) calls. Combines three things that were
-deliberately kept separate until now:
+"""The inference wrapper — the single ML-layer entry point the service layer (Phase 6) calls. Combines three things that were deliberately kept separate until now:
 
-- loading a registered model (and validating it matches the current
-  feature schema)
+- loading a registered model (and validating it matches the current-feature schema)
 - producing a calibrated probability
 - producing the SHAP-based explanation for that same prediction
 
-Loading is cached at module level (`get_model()`), so the booster is
-read from disk once per process, not once per request — the model
-itself is loaded once at startup and reused, per NFR2 (inference
-latency).
+Loading is cached at module level (`get_model()`), so the booster is read from disk once per process, not once per request — the model itself is loaded once at startup and reused, per NFR2 (inference latency).
 """
 
 import json

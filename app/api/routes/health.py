@@ -1,18 +1,16 @@
 """Liveness and readiness endpoints.
 
-Readiness will grow a model-artifact-loaded check once inference
-exists (per the EDD's error handling: the API should refuse
-predictions with a 503 if the registered model failed to load rather
-than serving from a stale/partial model). For now it only verifies
-the database is reachable, since that's the one dependency this phase
-actually wires up.
+Readiness checks BOTH the database AND that a trained model is
+loaded — per the EDD's error handling: the API should refuse
+predictions with a 503 if the registered model failed to load rather than serving from a stale/partial state, and readiness should reflect that before any traffic is routed here.
 """
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
+from app.ml.inference import ModelNotFoundError, get_model
 
 router = APIRouter(tags=["health"])
 
@@ -25,6 +23,13 @@ def liveness() -> dict:
 
 @router.get("/health/ready")
 def readiness(db: Session = Depends(get_db)) -> dict:
-    """Process is up AND its dependencies are reachable."""
+    """Process is up AND its dependencies are reachable AND a model is loaded and ready to serve predictions.
+    """
     db.execute(text("SELECT 1"))
+
+    try:
+        get_model()
+    except ModelNotFoundError as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
+
     return {"status": "ready"}

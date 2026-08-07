@@ -1,15 +1,9 @@
 """Per-prediction explainability.
 
-Uses SHAP's TreeExplainer to explain a prediction made by a LightGBM
-model. Given one feature row, it returns the features that contributed
-the most to the prediction.
+Uses SHAP's TreeExplainer — fast and exact for gradient-boosted trees specifically (unlike model-agnostic methods such as LIME, which approximate by perturbing inputs). Takes an already-loaded LightGBM Booster and one feature row, returns per-feature attributions ranked by contribution magnitude.
 
-This helps identify which sensor readings influenced the model the
-most. It explains the model's decision, not the actual physical cause
-of the failure.
-
-This module only explains predictions. Loading or caching the model
-is handled separately in the inference module (Phase 5).
+This IS the root-cause tracer: the highest-attribution feature is the system's best guess at which sensor is driving the prediction. It explains what the MODEL weighted most heavily, not true physical causation — a strong diagnostic hint for a technician, not a certified diagnosis.
+Deliberately does not load or cache a model — that belongs to the inference wrapper (Phase 5). This module is a pure function: booster and feature row in, ranked attributions out.
 """
 
 from typing import NamedTuple
@@ -21,43 +15,34 @@ import shap
 from app.ml.features import FEATURE_COLUMNS
 
 
-# Stores the explanation for one feature.
 class FeatureAttribution(NamedTuple):
-    feature: str         
-    shap_value: float    
-    feature_value: float 
+    feature: str
+    shap_value: float
+    feature_value: float
 
 
 def explain_prediction(
     booster: lgb.Booster, feature_row: dict[str, float], top_n: int = 3
 ) -> list[FeatureAttribution]:
-    """Returns the top features that influenced a single prediction."""
-
+    """Returns the `top_n` features contributing most to this single
+    prediction, ranked by absolute SHAP value (largest push toward
+    failure or away from it, either direction).
+    """
     row_df = pd.DataFrame([feature_row])[FEATURE_COLUMNS]
 
-    # Create a SHAP explainer for the trained model.
     explainer = shap.TreeExplainer(booster)
-
-    # Calculate SHAP values for this prediction.
     raw_shap_values = explainer.shap_values(row_df)
 
-    # Different SHAP versions return different formats.
-    # Convert everything into one 1D array of SHAP values.
+    # SHAP's return shape has varied across versions/model types
+    # (ndarray vs. a list of per-class ndarrays for some classifiers).
+    # Normalize to a single 1D array of per-feature values for this
+    # one row rather than assuming one specific shape.
     values = raw_shap_values[1] if isinstance(raw_shap_values, list) else raw_shap_values
     row_values = values[0]
 
-    # Create an attribution object for every feature.
     attributions = [
-        FeatureAttribution(
-            feature=name,
-            shap_value=float(value),
-            feature_value=float(feature_row[name]),
-        )
+        FeatureAttribution(feature=name, shap_value=float(value), feature_value=float(feature_row[name]))
         for name, value in zip(FEATURE_COLUMNS, row_values, strict=True)
     ]
-
-    # Sort features by highest contribution.
     attributions.sort(key=lambda a: abs(a.shap_value), reverse=True)
-
-    # Return only the top N features.
     return attributions[:top_n]

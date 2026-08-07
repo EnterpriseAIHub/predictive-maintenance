@@ -22,11 +22,7 @@ class Base(DeclarativeBase):
 
 def get_db_session() -> Session:
     """Yields a database session for use as a FastAPI dependency.
-
-    Kept here (rather than only in app/api/deps.py) so non-API
-    entrypoints — the batch job in particular — can open a session
-    the same way the API does, instead of duplicating connection
-    setup.
+    Kept here (rather than only in app/api/deps.py) so non-API entrypoints — the batch job in particular — can open a session the same way the API does, instead of duplicating connection setup.
     """
     session = SessionLocal()
     try:

@@ -5,7 +5,6 @@ from app.ml.features import FEATURE_COLUMNS
 from app.ml.training.dataset import generate_synthetic_training_data
 
 
-# Train a small model that all tests can use
 def _train_small_model():
     df = generate_synthetic_training_data(n_assets=100, random_seed=3)
     model = lgb.LGBMClassifier(objective="binary", n_estimators=50, random_state=3, verbosity=-1)
@@ -13,8 +12,6 @@ def _train_small_model():
     return model.booster_, df
 
 
-# Check that explain_prediction returns the requested number of
-# valid features and that they are ranked correctly.
 def test_explanation_has_requested_top_n_and_valid_features():
     booster, df = _train_small_model()
     row = df.iloc[0][FEATURE_COLUMNS].to_dict()
@@ -23,16 +20,19 @@ def test_explanation_has_requested_top_n_and_valid_features():
 
     assert len(attributions) == 3
     assert all(a.feature in FEATURE_COLUMNS for a in attributions)
-
-    # SHAP values should be sorted by importance
+    # Ranked by |shap_value| descending
     magnitudes = [abs(a.shap_value) for a in attributions]
     assert magnitudes == sorted(magnitudes, reverse=True)
 
 
-# Verify that SHAP explanations correctly reconstruct
-# the model's original prediction.
 def test_shap_values_satisfy_additivity_against_the_real_model():
-    """Checks SHAP's additivity property on a real trained model."""
+    """The defining correctness property of SHAP: expected_value plus
+    the sum of ALL per-feature shap values must reconstruct the
+    model's actual raw prediction for that row. This is checked
+    against the full attribution set (not just top_n), independently
+    of explain_prediction, to verify the underlying explainer is wired
+    correctly against our specific booster.
+    """
     import shap
 
     booster, df = _train_small_model()
@@ -48,15 +48,15 @@ def test_shap_values_satisfy_additivity_against_the_real_model():
     assert abs(reconstructed - raw_prediction) < 1e-4
 
 
-# Check that an extreme temperature value is identified
-# as one of the most important features.
 def test_feature_with_largest_magnitude_value_tends_to_dominate_a_clear_outlier():
-    """Sanity check for feature importance."""
+    """Not a proof of correctness on its own, but a sanity check: an
+    asset whose temperature is far outside the training distribution
+    should show temperature-related features among the top
+    attributions, not an unrelated feature.
+    """
     booster, df = _train_small_model()
     row = df.iloc[0][FEATURE_COLUMNS].to_dict()
-
-    # Create an obvious temperature anomaly
-    row["temperature_rolling_mean"] = 500.0
+    row["temperature_rolling_mean"] = 500.0  # wildly outside normal range
     row["temperature_rate_of_change"] = 50.0
 
     attributions = explain_prediction(booster, row, top_n=3)

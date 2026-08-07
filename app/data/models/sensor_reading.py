@@ -1,6 +1,4 @@
-"""Raw sensor readings — the input feature engineering will read from
-in a later milestone. Deliberately just storage here: no aggregation,
-no rolling windows, no derived values.
+"""Raw sensor readings — the input feature engineering will read from in a later milestone. Deliberately just storage here: no aggregation, no rolling windows, no derived values.
 """
 
 from datetime import datetime

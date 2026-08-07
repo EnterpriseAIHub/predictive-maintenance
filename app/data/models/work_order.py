@@ -1,11 +1,7 @@
+#Bounded Context
 """Work orders created by this repo (owned here — see NFR6:
 boundedness).
-
-`priority` is the currently-effective priority. `recommended_priority`
-is what the model recommended, which can differ from `priority`: when
-the model recommends URGENT, the system holds `priority` at ELEVATED
-until a human explicitly approves the escalation (FR4) — see
-app/services/work_order_service.py. The three approval columns are
+`priority` is the currently-effective priority. `recommended_priority` is what the model recommended, which can differ from `priority`: when the model recommends URGENT, the system holds `priority` at ELEVATED until a human explicitly approves the escalation (FR4) — see app/services/work_order_service.py. The three approval columns are
 null until that approval happens.
 """
 

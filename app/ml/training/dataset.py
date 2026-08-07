@@ -1,182 +1,109 @@
+
 from datetime import UTC, datetime, timedelta
 
 import numpy as np
 import pandas as pd
 
-# Import sensor names and feature engineering function
 from app.ml.features import EXPECTED_SENSOR_TYPES, build_feature_vector
 
+# Baseline sensor value and noise level for a HEALTHY asset, per
+# sensor type. A DEGRADING asset drifts upward from this baseline
+# over the simulated window, which is what gives the rolling-mean/
+# rate-of-change features real signal to learn from. Drift magnitudes
+# are kept small relative to noise deliberately — real degradation
+# signal is subtle, and a synthetic dataset with clean separation
+# between classes would make the pipeline's metrics meaningless (a
+# perfect-looking model here would just mean the data was too easy,
+# not that the pipeline works).
+_BASELINE = {"temperature": (70.0, 2.0), "vibration": (0.5, 0.05), "pressure": (100.0, 3.0)}
+_DEGRADED_DRIFT_PER_HOUR = {"temperature": 0.05, "vibration": 0.0012, "pressure": 0.06}
 
-# Default sensor values for a healthy machine
-# (average value, noise)
-_BASELINE = {
-    "temperature": (70.0, 2.0),
-    "vibration": (0.5, 0.05),
-    "pressure": (100.0, 3.0),
-}
-
-# How much each sensor increases every hour for a degrading machine
-_DEGRADED_DRIFT_PER_HOUR = {
-    "temperature": 0.05,
-    "vibration": 0.0012,
-    "pressure": 0.06,
-}
-
-# Total sensor readings generated for one machine
-_READINGS_PER_ASSET = 48
+_READINGS_PER_ASSET = 48  # e.g. one reading every ~3.5 hours over the 7-day lookback
 
 
 def _simulate_readings(
-    as_of: datetime,
-    degrading: bool,
-    drift_factor: float,
-    rng: np.random.Generator,
+    as_of: datetime, degrading: bool, drift_factor: float, rng: np.random.Generator
 ) -> pd.DataFrame:
+    """One asset's sensor history for the lookback window.
 
-    """Generate fake sensor history for ONE machine."""
-
-    # Create timestamps for the last 7 days
+    `drift_factor` scales how strongly this specific asset follows
+    its class's expected trend — degrading assets vary in how
+    obviously they're degrading, and healthy assets occasionally
+    drift mildly too, which is what keeps the two classes from being
+    trivially separable.
+    """
     timestamps = [
         as_of - timedelta(hours=h)
-        for h in np.linspace(168, 0, _READINGS_PER_ASSET)
+        for h in np.linspace(168, 0, _READINGS_PER_ASSET)  # 7-day window, oldest first
     ]
-
     rows = []
-
-    # Generate readings for every sensor
     for sensor_type in EXPECTED_SENSOR_TYPES:
-
         baseline, noise = _BASELINE[sensor_type]
-
-        # Only degrading machines have increasing sensor values
-        drift_per_hour = (
-            _DEGRADED_DRIFT_PER_HOUR[sensor_type] * drift_factor
-            if degrading
-            else 0.0
-        )
-
-        # Create sensor value for every timestamp
+        drift_per_hour = _DEGRADED_DRIFT_PER_HOUR[sensor_type] * drift_factor if degrading else 0.0
         for ts in timestamps:
-
-            hours_elapsed = (
-                as_of - ts
-            ).total_seconds() / 3600
-
-            # Drift becomes larger near the current time
-            drift = (
-                drift_per_hour * (168 - hours_elapsed)
-                if degrading
-                else 0.0
-            )
-
-            # Final sensor value
-            # = healthy value
-            # + degradation
-            # + random sensor noise
+            hours_elapsed = (as_of - ts).total_seconds() / 3600
+            # drift grows as we approach `as_of` — degradation is most
+            # visible right before the labeled failure point
+            drift = drift_per_hour * (168 - hours_elapsed) if degrading else 0.0
             value = baseline + drift + rng.normal(0, noise)
-
-            rows.append({
-                "sensor_type": sensor_type,
-                "timestamp": ts,
-                "value": value,
-            })
-
+            rows.append({"sensor_type": sensor_type, "timestamp": ts, "value": value})
     return pd.DataFrame(rows)
 
 
 def generate_synthetic_training_data(
-
-    # Number of fake machines
     n_assets: int = 400,
-
-    # Percentage of failed machines
     positive_rate: float = 0.15,
-
-    # Makes random generation reproducible
     random_seed: int = 42,
-
-    # Percentage of labels to flip intentionally
     label_noise_rate: float = 0.08,
-
 ) -> pd.DataFrame:
+    """Returns a DataFrame with FEATURE_COLUMNS + 'label' + 'equipment_id',
+    one row per simulated asset. `label=1` means the asset was
+    simulated as degrading toward failure within the prediction
+    window; `label=0` is a healthy asset. `positive_rate` intentionally
+    mirrors real predictive-maintenance class imbalance.
 
-    """Generate fake dataset for ML model training."""
-
-    # Random number generator
+    `label_noise_rate` independently flips a fraction of labels after
+    the sensor data is generated — real failures aren't perfectly
+    predicted by the sensor pattern that precedes them (a different
+    failure mode, a false alarm), and a synthetic dataset with zero
+    label noise would let the model achieve unrealistic ROC-AUC/PR-AUC
+    of 1.0, which would say nothing useful about the pipeline.
+    """
     rng = np.random.default_rng(random_seed)
-
-    # Assume today's date
     as_of = datetime(2026, 1, 1, tzinfo=UTC)
+    install_date = as_of - timedelta(days=730)  # fixed 2-year asset age for all synthetic units
 
-    # Assume every machine is 2 years old
-    install_date = as_of - timedelta(days=730)
-
-    # Number of failure machines
     n_positive = int(round(n_assets * positive_rate))
-
-    # Create labels
-    # 1 = failure
-    # 0 = healthy
-    true_labels = np.array(
-        [1] * n_positive +
-        [0] * (n_assets - n_positive)
-    )
-
-    # Shuffle labels randomly
+    true_labels = np.array([1] * n_positive + [0] * (n_assets - n_positive))
     rng.shuffle(true_labels)
 
     rows = []
-
-    # Create one machine at a time
     for i, true_label in enumerate(true_labels):
-
-        # Failed machines get stronger drift
+        # Degrading assets vary from mildly to strongly degrading;
+        # "healthy" assets get a small chance of mild drift too (e.g.
+        # a sensor with unrelated noise) — this overlap is what makes
+        # the classification problem realistically hard rather than
+        # trivial.
         if true_label:
             drift_factor = float(rng.uniform(0.4, 1.6))
-
-        # Healthy machines mostly have no drift
-        # but 20% get a tiny drift
         else:
-            drift_factor = (
-                float(rng.uniform(0, 0.3))
-                if rng.random() < 0.2
-                else 0.0
-            )
+            drift_factor = float(rng.uniform(0, 0.3)) if rng.random() < 0.2 else 0.0
 
-        # Generate fake sensor readings
         readings = _simulate_readings(
-            as_of,
-            degrading=bool(true_label) or drift_factor > 0,
-            drift_factor=drift_factor,
-            rng=rng,
+            as_of, degrading=bool(true_label) or drift_factor > 0, drift_factor=drift_factor, rng=rng
         )
+        criticality_tier = int(rng.integers(1, 4))  # 1-3
+        features = build_feature_vector(readings, install_date, criticality_tier, as_of)
 
-        # Random criticality level
-        criticality_tier = int(rng.integers(1, 4))
+        # The sensor data above is generated from the TRUE degradation
+        # state; the stored label is independently noised, so the
+        # features and the label can legitimately disagree — exactly
+        # like a real dataset where the sensor signal is informative
+        # but not perfectly predictive.
+        observed_label = 1 - true_label if rng.random() < label_noise_rate else true_label
 
-        # Convert sensor history into ML features
-        features = build_feature_vector(
-            readings,
-            install_date,
-            criticality_tier,
-            as_of,
-        )
-
-        # Add realistic mistakes by flipping some labels
-        observed_label = (
-            1 - true_label
-            if rng.random() < label_noise_rate
-            else true_label
-        )
-
-        # Add target column
         features["label"] = int(observed_label)
-
-        # Give each machine a unique ID
         features["equipment_id"] = f"synthetic-eq-{i}"
-
-        # Save this machine
         rows.append(features)
 
-    # Return complete dataset
     return pd.DataFrame(rows)

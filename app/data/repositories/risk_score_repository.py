@@ -5,8 +5,7 @@ from app.data.models.risk_score import RiskScore
 
 
 def create(db: Session, risk_score: RiskScore) -> RiskScore:
-    """Adds and flushes (not commits) — see sensor_reading_repository
-    for why the transaction boundary belongs to the caller."""
+    """Adds and flushes (not commits) — see sensor_reading_repository for why the transaction boundary belongs to the caller."""
     db.add(risk_score)
     db.flush()
     db.refresh(risk_score)

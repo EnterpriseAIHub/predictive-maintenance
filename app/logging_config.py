@@ -1,10 +1,6 @@
 """Structured (JSON) logging setup.
 
-Every prediction, event publish, and work-order state change will be
-logged through this configuration in later phases, per NFR5
-(observability) — logs need to be structured and queryable, not
-free-text, so "why did the system do this" can be reconstructed after
-the fact.
+Every prediction, event publish, and work-order state change will be logged through this configuration in later phases, per NFR5(observability) — logs need to be structured and queryable, not free-text, so "why did the system do this" can be reconstructed after the fact.
 """
 
 import logging

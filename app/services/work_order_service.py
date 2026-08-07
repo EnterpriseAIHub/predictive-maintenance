@@ -1,12 +1,8 @@
-"""Work-order business logic: creating a work order from a risk
-assessment, and the urgent-priority approval gate (FR4).
+"""Work-order business logic: creating a work order from a risk assessment, and the urgent-priority approval gate (FR4).
 
-FR4, concretely: the system never persists `priority=URGENT` as a
-direct result of a prediction. When the risk policy recommends
-URGENT, the work order is created with `priority=ELEVATED` and
-`recommended_priority=URGENT` — a human must call
-`approve_urgent_priority` to actually escalate it. This function is
-the ONLY code path that writes `priority=URGENT`; there is no
+FR4, concretely: the system never persists `priority=URGENT` as a direct result of a prediction. When the risk policy recommends
+URGENT, the work order is created with `priority=ELEVATED` and `recommended_priority=URGENT` — a human must call
+`approve_urgent_priority` to actually escalate it. This function is the ONLY code path that writes `priority=URGENT`; there is no
 shortcut around it elsewhere in this service.
 """
 
@@ -17,9 +13,13 @@ from sqlalchemy.orm import Session
 
 from app.data.models.work_order import WorkOrder
 from app.data.repositories import work_order_repository
+from app.events.publisher import WorkOrderApprovedEvent, publish_work_order_approved
+from app.logging_config import get_logger
 from app.schemas.work_order import WorkOrderPriority, WorkOrderStatus
 from app.services import risk_policy
 from app.services.errors import InvalidApprovalError, WorkOrderNotFoundError
+
+logger = get_logger(__name__)
 
 
 def create_work_order_for_prediction(
@@ -46,7 +46,17 @@ def create_work_order_for_prediction(
         status=WorkOrderStatus.OPEN,
         created_at=as_of,
     )
-    return work_order_repository.create(db, work_order)
+    work_order = work_order_repository.create(db, work_order)
+
+    logger.info(
+        "work_order_created",
+        work_order_id=work_order.id,
+        equipment_id=equipment_id,
+        priority=persisted_priority.value,
+        recommended_priority=recommended.value,
+        held_pending_approval=recommended == WorkOrderPriority.URGENT,
+    )
+    return work_order
 
 
 def approve_urgent_priority(db: Session, work_order_id: str, approved_by: str) -> WorkOrder:
@@ -71,4 +81,33 @@ def approve_urgent_priority(db: Session, work_order_id: str, approved_by: str) -
 
     db.commit()
     db.refresh(work_order)
+
+    logger.info(
+        "work_order_urgent_priority_approved",
+        work_order_id=work_order.id,
+        equipment_id=work_order.equipment_id,
+        approved_by=approved_by,
+    )
+
+    # Publish async event. Same best-effort pattern as prediction_service:
+    # the approval is durable, and if Redis is down, it's a transient issue
+    # rather than a reason to fail an already-successful approval — but it
+    # IS logged, since a silently dropped downstream notification is worth
+    # being able to find later.
+    try:
+        publish_work_order_approved(
+            WorkOrderApprovedEvent(
+                work_order_id=work_order.id,
+                equipment_id=work_order.equipment_id,
+                approved_by=approved_by,
+            )
+        )
+    except Exception as e:
+        logger.warning(
+            "event_publish_failed",
+            event_type="work_order.approved",
+            work_order_id=work_order.id,
+            error=str(e),
+        )
+
     return work_order

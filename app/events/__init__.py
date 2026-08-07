@@ -1,5 +1,6 @@
-# The Redis Streams publisher lives here: serializes the
-# `equipment.failure_risk.high` event and handles retry-with-backoff
-# on publish failure, deliberately isolated so a Redis outage can
-# never block the core work-order write (EDD §19). Added in the phase
-# that implements inference and event publishing.
+# Event publishing via Redis Streams (publisher.py). Publishes domain
+# events (EquipmentFailureRiskEvent, WorkOrderApprovedEvent) after writes
+# so other platform repos can react asynchronously. Events are best-effort:
+# if Redis is unavailable, the event is dropped silently, but the write
+# (prediction, approval) that triggered it is always durable — Redis
+# unavailability never blocks the core business logic.
