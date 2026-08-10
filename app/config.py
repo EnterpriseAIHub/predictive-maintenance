@@ -1,6 +1,8 @@
 """Runtime configuration, sourced from environment variables.
 
-Values are read once at import time and reused everywhere via the `settings` singleton below. Nothing in this repo should call `os.environ` directly outside this module.
+Values are read once at import time and reused everywhere via the
+`settings` singleton below. Nothing in this repo should call
+`os.environ` directly outside this module.
 """
 
 from functools import lru_cache
@@ -20,9 +22,14 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
 
     # Data stores
-    database_url: str = "postgresql+psycopg2://postgres:postgres@localhost:5432/predictive_maintenance"
+    database_url: str = (
+        "postgresql+psycopg2://postgres:postgres@localhost:5432/predictive_maintenance"
+    )
     redis_url: str = "redis://localhost:6379/0"
 
+    # Business configuration (used starting in later phases; declared
+    # now so the schema of "what this service is configured by" is
+    # visible from day one)
     failure_risk_threshold: float = 0.7
     urgent_priority_threshold: float = 0.9
     prediction_window_days: int = 7
@@ -32,6 +39,10 @@ class Settings(BaseSettings):
     # to app.ml.features.build_feature_vector().
     feature_lookback_hours: int = 168  # 7 days
 
+    # Model registry — the offline training pipeline (app/ml/training/)
+    # writes here; the inference wrapper (app/ml/inference.py) reads
+    # from here. One shared setting so neither side can drift out of
+    # sync with a hardcoded path of its own.
     model_registry_dir: Path = REPO_ROOT / "model" / "registry"
 
 

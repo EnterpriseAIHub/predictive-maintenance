@@ -1,8 +1,12 @@
-"""Work-order business logic: creating a work order from a risk assessment, and the urgent-priority approval gate (FR4).
+"""Work-order business logic: creating a work order from a risk
+assessment, and the urgent-priority approval gate (FR4).
 
-FR4, concretely: the system never persists `priority=URGENT` as a direct result of a prediction. When the risk policy recommends
-URGENT, the work order is created with `priority=ELEVATED` and `recommended_priority=URGENT` — a human must call
-`approve_urgent_priority` to actually escalate it. This function is the ONLY code path that writes `priority=URGENT`; there is no
+FR4, concretely: the system never persists `priority=URGENT` as a
+direct result of a prediction. When the risk policy recommends
+URGENT, the work order is created with `priority=ELEVATED` and
+`recommended_priority=URGENT` — a human must call
+`approve_urgent_priority` to actually escalate it. This function is
+the ONLY code path that writes `priority=URGENT`; there is no
 shortcut around it elsewhere in this service.
 """
 
@@ -35,7 +39,9 @@ def create_work_order_for_prediction(
 
     # Hold urgent recommendations at ELEVATED until a human approves —
     # this is the entire mechanism behind FR4.
-    persisted_priority = WorkOrderPriority.ELEVATED if recommended == WorkOrderPriority.URGENT else recommended
+    persisted_priority = (
+        WorkOrderPriority.ELEVATED if recommended == WorkOrderPriority.URGENT else recommended
+    )
 
     work_order = WorkOrder(
         id=str(uuid.uuid4()),

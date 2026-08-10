@@ -25,6 +25,9 @@ class Equipment(Base):
     install_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     criticality_tier: Mapped[int] = mapped_column(Integer, nullable=False)
 
-    sensor_readings: Mapped[list["SensorReading"]] = relationship(back_populates="equipment")
-    work_orders: Mapped[list["WorkOrder"]] = relationship(back_populates="equipment")
-    risk_scores: Mapped[list["RiskScore"]] = relationship(back_populates="equipment")
+    # F821 on the three lines below is a false positive: these are
+    # SQLAlchemy string forward-refs, resolved at runtime, not real
+    # undefined names.
+    sensor_readings: Mapped[list["SensorReading"]] = relationship(back_populates="equipment")  # noqa: F821
+    work_orders: Mapped[list["WorkOrder"]] = relationship(back_populates="equipment")  # noqa: F821
+    risk_scores: Mapped[list["RiskScore"]] = relationship(back_populates="equipment")  # noqa: F821

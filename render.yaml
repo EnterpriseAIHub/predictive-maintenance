@@ -1,0 +1,61 @@
+# Render Blueprint: describes the whole service topology in one file
+# so deploying is "connect this repo in Render's dashboard" rather
+# than manually configuring each field by hand. See DEPLOYMENT.md for
+# the handful of steps that are still genuinely manual (there's no way
+# to fully automate connecting a GitHub repo to a Render account from
+# inside the repo itself).
+#
+# NOTE: written from Render's documented Blueprint syntax but not
+# verified against a live Render deployment (this environment has no
+# access to Render's platform) — treat the exact field names as
+# probably-right, not guaranteed-right, on first real deploy.
+
+services:
+  - type: web
+    name: predictive-maintenance-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health/ready
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: predictive-maintenance-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: predictive-maintenance-cache
+          property: connectionString
+      - key: ENVIRONMENT
+        value: production
+      - key: LOG_LEVEL
+        value: INFO
+    # Runs before each deploy goes live — migrations must succeed
+    # before traffic is routed to the new version.
+    preDeployCommand: alembic upgrade head
+
+  - type: cron
+    name: predictive-maintenance-nightly-scoring
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    schedule: "0 6 * * *" # 06:00 UTC daily
+    dockerCommand: python -m app.batch.nightly_job
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: predictive-maintenance-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: predictive-maintenance-cache
+          property: connectionString
+
+  - type: redis
+    name: predictive-maintenance-cache
+    plan: free
+    ipAllowList: []
+
+databases:
+  - name: predictive-maintenance-db
+    plan: free

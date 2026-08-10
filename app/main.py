@@ -1,6 +1,9 @@
 """FastAPI application entrypoint.
 
-Route handlers themselves stay in app/api/routes/ — this module only assembles the app: logging, routers, error handlers, and the startup hook that loads the registered model into memory once at process start (per NFR2 — the model is loaded once, not reloaded per request).
+Route handlers themselves stay in app/api/routes/ — this module only
+assembles the app: logging, routers, error handlers, and the startup
+hook that loads the registered model into memory once at process
+start (per NFR2 — the model is loaded once, not reloaded per request).
 """
 
 from collections.abc import AsyncIterator

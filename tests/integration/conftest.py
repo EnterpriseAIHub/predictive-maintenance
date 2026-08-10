@@ -1,11 +1,18 @@
 """Integration test fixtures.
 
 These tests run against the real Postgres instance (see
-docker-compose.override.yml / .env) rather than mocks, per the EDD's testing strategy (§21) — repository/query behavior is exactly the kind of thing that looks right and silently isn't.
+docker-compose.override.yml / .env) rather than mocks, per the EDD's
+testing strategy (§21) — repository/query behavior is exactly the
+kind of thing that looks right and silently isn't.
 
 Isolation: the service layer legitimately calls session.commit()
 (prediction_service and work_order_service own their transaction
-boundary — see their docstrings), so a plain "rollback in a finally block" stops working the moment any test exercises code that commits. Instead, each test's session is bound to a SAVEPOINT nested inside an outer connection-level transaction: session.commit() releases the savepoint (and opens a new one) without touching the outer transaction, which is rolled back unconditionally when the test ends.
+boundary — see their docstrings), so a plain "rollback in a finally
+block" stops working the moment any test exercises code that commits.
+Instead, each test's session is bound to a SAVEPOINT nested inside an
+outer connection-level transaction: session.commit() releases the
+savepoint (and opens a new one) without touching the outer
+transaction, which is rolled back unconditionally when the test ends.
 """
 
 import pytest
@@ -38,6 +45,10 @@ def client(db: Session) -> TestClient:
     API test can seed data via `db` directly and see it through HTTP,
     and any commit() the request triggers still rolls back cleanly at
     the end of the test.
+
+    Used as a context manager so FastAPI's lifespan (startup/shutdown)
+    actually runs — this is what exercises app.main's model-preload
+    logic in tests, rather than silently skipping it.
     """
 
     def _override_get_db():
@@ -45,6 +56,7 @@ def client(db: Session) -> TestClient:
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        yield TestClient(app)
+        with TestClient(app) as test_client:
+            yield test_client
     finally:
         app.dependency_overrides.pop(get_db, None)

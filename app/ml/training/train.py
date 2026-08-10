@@ -75,12 +75,16 @@ def _save_calibration_plot(y_test, probabilities, version_dir: Path) -> None:
     plt.close(fig)
 
 
-def _write_model_card(version: str, version_dir: Path, metrics: dict, n_train: int, n_test: int) -> None:
+def _write_model_card(
+    version: str, version_dir: Path, metrics: dict, n_train: int, n_test: int
+) -> None:
     card = f"""# Model Card — predictive-maintenance {version}
 
 **Trained:** {datetime.now(UTC).isoformat()}
 **Algorithm:** LightGBM binary classifier (gradient-boosted trees)
-**Training data:** synthetic (see app/ml/training/dataset.py) — placeholder for a real historical dataset; swapping the data source does not change this pipeline's structure.
+**Training data:** synthetic (see app/ml/training/dataset.py) — placeholder
+for a real historical dataset; swapping the data source does not change
+this pipeline's structure.
 
 ## Data split
 Group split by `equipment_id` — no asset appears in both train and test.
@@ -94,15 +98,17 @@ Group split by `equipment_id` — no asset appears in both train and test.
 
 PR-AUC, not accuracy, is the metric that matters here — failures are
 rare, so accuracy alone would look deceptively good on a model that
-never flags anything .
+never flags anything (see the learning guide, §9).
 
 ## Feature columns (exact training order)
 {chr(10).join(f"- {c}" for c in FEATURE_COLUMNS)}
 
 ## Known limitations
-- Trained on synthetic data — metrics above describe pipeline correctness, not real-world model quality.
+- Trained on synthetic data — metrics above describe pipeline
+  correctness, not real-world model quality.
 - No SHAP explainability yet (Phase 4).
-- Not yet calibration-corrected if the calibration curve shows drift — see calibration_curve.png in this folder.
+- Not yet calibration-corrected if the calibration curve shows drift —
+  see calibration_curve.png in this folder.
 """
     (version_dir / "model_card.md").write_text(card)
 
@@ -118,6 +124,18 @@ def _update_manifest(version: str, metrics: dict) -> None:
         "metrics": metrics,
     }
     manifest_path.write_text(json.dumps(manifest, indent=2))
+
+
+def _publish_model_card_to_repo_root(version_dir: Path, repo_root: Path) -> None:
+    """Mirrors the latest model card to MODEL_CARD.md at the repo root.
+    model/registry/<version>/ is correct and complete but requires
+    knowing (or looking up) a dynamic, timestamped version string to
+    find — this gives it one stable, discoverable path, refreshed on
+    every training run. Purely a documentation convenience (Phase 13);
+    the versioned copy under model/registry/ remains the source of
+    truth.
+    """
+    (repo_root / "MODEL_CARD.md").write_text((version_dir / "model_card.md").read_text())
 
 
 def train_and_save() -> str:
@@ -143,6 +161,7 @@ def train_and_save() -> str:
     _save_calibration_plot(y_test, probabilities, version_dir)
     _write_model_card(version, version_dir, metrics, len(train_df), len(test_df))
     _update_manifest(version, metrics)
+    _publish_model_card_to_repo_root(version_dir, repo_root=REGISTRY_DIR.parent.parent)
 
     return version
 

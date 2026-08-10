@@ -1,11 +1,11 @@
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 
+from app.batch import nightly_job
 from app.data.models.equipment import Equipment
 from app.data.models.risk_score import RiskScoreSource
 from app.ml.explain import FeatureAttribution
 from app.ml.inference import PredictionResult
 from app.services import prediction_service
-from app.batch import nightly_job
 
 AS_OF = datetime(2026, 1, 8, tzinfo=UTC)
 

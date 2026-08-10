@@ -43,7 +43,10 @@ def _seed_equipment_and_readings(db, id_: str = "eq-1") -> None:
     )
     db.add(
         SensorReading(
-            equipment_id=id_, timestamp=AS_OF - timedelta(hours=1), sensor_type="temperature", value=80.0
+            equipment_id=id_,
+            timestamp=AS_OF - timedelta(hours=1),
+            sensor_type="temperature",
+            value=80.0,
         )
     )
     db.flush()

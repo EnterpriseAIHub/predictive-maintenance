@@ -1,6 +1,7 @@
 """Shared FastAPI dependencies.
 
-Routes depend on these rather than importing `app.data.base` directly, so route handlers stay free of persistence-layer wiring details.
+Routes depend on these rather than importing `app.data.base` directly,
+so route handlers stay free of persistence-layer wiring details.
 """
 
 from collections.abc import Generator

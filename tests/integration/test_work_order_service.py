@@ -65,7 +65,7 @@ def test_approve_urgent_priority_escalates_a_pending_recommendation(db):
 
 def test_approve_urgent_priority_rejects_a_work_order_with_no_pending_urgent(db):
     _seed_equipment(db)
-    wo = work_order_service.create_work_order_for_prediction(db, "eq-1", 0.75, AS_OF)  # elevated, not urgent
+    wo = work_order_service.create_work_order_for_prediction(db, "eq-1", 0.75, AS_OF)  # elevated
     db.commit()
 
     with pytest.raises(InvalidApprovalError):

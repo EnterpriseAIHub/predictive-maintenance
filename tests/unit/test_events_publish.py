@@ -81,8 +81,43 @@ def test_publish_raises_event_publish_error_on_redis_unavailable(monkeypatch):
 
     monkeypatch.setattr("app.events.publisher.redis.from_url", fake_redis)
 
-    event = EquipmentFailureRiskEvent(
-        equipment_id="eq-1", probability=0.92, model_version="v1"
-    )
+    event = EquipmentFailureRiskEvent(equipment_id="eq-1", probability=0.92, model_version="v1")
     with pytest.raises(EventPublishError):
         publish_equipment_failure_risk(event)
+
+
+def test_publish_equipment_failure_risk_wraps_unexpected_errors_too(monkeypatch):
+    """Not just ConnectionError — any unexpected failure during publish
+    (a serialization bug, a malformed URL, etc.) must also come out as
+    EventPublishError, not leak the raw exception type to the caller.
+    """
+
+    def fake_redis(*args, **kwargs):
+        class FakeClient:
+            def xadd(self, *args, **kwargs):
+                raise ValueError("something unexpected")
+
+        return FakeClient()
+
+    monkeypatch.setattr("app.events.publisher.redis.from_url", fake_redis)
+
+    event = EquipmentFailureRiskEvent(equipment_id="eq-1", probability=0.5, model_version="v1")
+    with pytest.raises(EventPublishError):
+        publish_equipment_failure_risk(event)
+
+
+def test_publish_work_order_approved_wraps_unexpected_errors_too(monkeypatch):
+    def fake_redis(*args, **kwargs):
+        class FakeClient:
+            def xadd(self, *args, **kwargs):
+                raise ValueError("something unexpected")
+
+        return FakeClient()
+
+    monkeypatch.setattr("app.events.publisher.redis.from_url", fake_redis)
+
+    event = WorkOrderApprovedEvent(
+        work_order_id="wo-1", equipment_id="eq-1", approved_by="tech_alice"
+    )
+    with pytest.raises(EventPublishError):
+        publish_work_order_approved(event)

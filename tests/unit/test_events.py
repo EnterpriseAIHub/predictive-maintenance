@@ -1,6 +1,5 @@
 from app.events.publisher import (
     EquipmentFailureRiskEvent,
-    EventPublishError,
     WorkOrderApprovedEvent,
 )
 

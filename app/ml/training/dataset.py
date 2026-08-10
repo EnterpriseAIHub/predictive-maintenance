@@ -1,3 +1,16 @@
+"""Training dataset construction.
+
+There is no real historical sensor/failure history yet (that arrives
+when a real dataset — e.g. a relabeled public degradation dataset —
+is wired in). This module generates a synthetic but structurally
+realistic stand-in: each simulated asset gets a sensor-reading history
+and a failure label, run through the SAME `build_feature_vector` the
+serving paths will use later, so the training pipeline below is
+already exercising the real train/serve contract, not a shortcut
+around it. Swapping this generator for a real data loader later
+should not require any change to train.py — both must only produce a
+DataFrame with FEATURE_COLUMNS + "label" + "equipment_id".
+"""
 
 from datetime import UTC, datetime, timedelta
 
@@ -90,7 +103,10 @@ def generate_synthetic_training_data(
             drift_factor = float(rng.uniform(0, 0.3)) if rng.random() < 0.2 else 0.0
 
         readings = _simulate_readings(
-            as_of, degrading=bool(true_label) or drift_factor > 0, drift_factor=drift_factor, rng=rng
+            as_of,
+            degrading=bool(true_label) or drift_factor > 0,
+            drift_factor=drift_factor,
+            rng=rng,
         )
         criticality_tier = int(rng.integers(1, 4))  # 1-3
         features = build_feature_vector(readings, install_date, criticality_tier, as_of)

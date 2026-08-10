@@ -1,9 +1,20 @@
 """Per-prediction explainability.
 
-Uses SHAP's TreeExplainer — fast and exact for gradient-boosted trees specifically (unlike model-agnostic methods such as LIME, which approximate by perturbing inputs). Takes an already-loaded LightGBM Booster and one feature row, returns per-feature attributions ranked by contribution magnitude.
+Uses SHAP's TreeExplainer — fast and exact for gradient-boosted trees
+specifically (unlike model-agnostic methods such as LIME, which
+approximate by perturbing inputs). Takes an already-loaded LightGBM
+Booster and one feature row, returns per-feature attributions ranked
+by contribution magnitude.
 
-This IS the root-cause tracer: the highest-attribution feature is the system's best guess at which sensor is driving the prediction. It explains what the MODEL weighted most heavily, not true physical causation — a strong diagnostic hint for a technician, not a certified diagnosis.
-Deliberately does not load or cache a model — that belongs to the inference wrapper (Phase 5). This module is a pure function: booster and feature row in, ranked attributions out.
+This IS the root-cause tracer: the highest-attribution feature is the
+system's best guess at which sensor is driving the prediction. It
+explains what the MODEL weighted most heavily, not true physical
+causation — a strong diagnostic hint for a technician, not a
+certified diagnosis (see the learning guide, §3).
+
+Deliberately does not load or cache a model — that belongs to the
+inference wrapper (Phase 5). This module is a pure function: booster
+and feature row in, ranked attributions out.
 """
 
 from typing import NamedTuple
@@ -41,7 +52,9 @@ def explain_prediction(
     row_values = values[0]
 
     attributions = [
-        FeatureAttribution(feature=name, shap_value=float(value), feature_value=float(feature_row[name]))
+        FeatureAttribution(
+            feature=name, shap_value=float(value), feature_value=float(feature_row[name])
+        )
         for name, value in zip(FEATURE_COLUMNS, row_values, strict=True)
     ]
     attributions.sort(key=lambda a: abs(a.shap_value), reverse=True)

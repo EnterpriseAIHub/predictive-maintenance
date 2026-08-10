@@ -23,10 +23,16 @@ def test_create_and_get_recent(db):
     now = datetime.now(UTC)
 
     old_reading = SensorReading(
-        equipment_id="eq-1", timestamp=now - timedelta(days=30), sensor_type="temperature", value=70.0
+        equipment_id="eq-1",
+        timestamp=now - timedelta(days=30),
+        sensor_type="temperature",
+        value=70.0,
     )
     recent_reading = SensorReading(
-        equipment_id="eq-1", timestamp=now - timedelta(hours=1), sensor_type="temperature", value=75.0
+        equipment_id="eq-1",
+        timestamp=now - timedelta(hours=1),
+        sensor_type="temperature",
+        value=75.0,
     )
     sensor_reading_repository.create(db, old_reading)
     sensor_reading_repository.create(db, recent_reading)

@@ -2,7 +2,9 @@
 
 Readiness checks BOTH the database AND that a trained model is
 loaded — per the EDD's error handling: the API should refuse
-predictions with a 503 if the registered model failed to load rather than serving from a stale/partial state, and readiness should reflect that before any traffic is routed here.
+predictions with a 503 if the registered model failed to load rather
+than serving from a stale/partial state, and readiness should reflect
+that before any traffic is routed here.
 """
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -23,7 +25,8 @@ def liveness() -> dict:
 
 @router.get("/health/ready")
 def readiness(db: Session = Depends(get_db)) -> dict:
-    """Process is up AND its dependencies are reachable AND a model is loaded and ready to serve predictions.
+    """Process is up AND its dependencies are reachable AND a model is
+    loaded and ready to serve predictions.
     """
     db.execute(text("SELECT 1"))
 

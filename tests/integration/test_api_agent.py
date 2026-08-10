@@ -32,7 +32,10 @@ def _seed_equipment_and_readings(db, id_: str = "eq-1") -> None:
     )
     db.add(
         SensorReading(
-            equipment_id=id_, timestamp=datetime(2026, 1, 7, tzinfo=UTC), sensor_type="vibration", value=0.9
+            equipment_id=id_,
+            timestamp=datetime(2026, 1, 7, tzinfo=UTC),
+            sensor_type="vibration",
+            value=0.9,
         )
     )
     db.flush()

@@ -1,8 +1,12 @@
 """Real-time prediction endpoints.
 
-Thin adapter over app.services.prediction_service — every route here does request/response translation only. No business logic lives in this file (see the architecture doc, §3: business rules belong in the service layer, not the API layer).
+Thin adapter over app.services.prediction_service — every route here
+does request/response translation only. No business logic lives in
+this file (see the architecture doc, §3: business rules belong in the
+service layer, not the API layer).
 """
 
+import math
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -24,8 +28,20 @@ class PredictRequest(BaseModel):
 
 class FeatureAttributionResponse(BaseModel):
     feature: str
-    shap_value: float
-    feature_value: float
+    shap_value: float | None
+    feature_value: float | None
+
+
+def _json_safe_float(value: float) -> float | None:
+    """NaN is a legitimate value in app.ml.features (it means "no
+    sensor readings for this channel" — see build_feature_vector's
+    docstring), but it is NOT valid JSON. Starlette's JSONResponse
+    rejects it outright (allow_nan=False), which would 500 the entire
+    request for the exact case — an asset with sparse/no history —
+    that Bug 5 (Phase 8) specifically fixed the crash for. Representing
+    "no data" as JSON null is the honest translation, not a workaround.
+    """
+    return None if math.isnan(value) else value
 
 
 class WorkOrderResponse(BaseModel):
@@ -58,7 +74,9 @@ class RiskScoreResponse(BaseModel):
 
 @router.post("/predict", response_model=PredictResponse)
 def predict(request: PredictRequest, db: Session = Depends(get_db)) -> PredictResponse:
-    """Runs a real-time prediction for one asset: fetches recent sensor data, scores it, persists the result, and opens a work order if the risk policy warrants one (see app.services.prediction_service).
+    """Runs a real-time prediction for one asset: fetches recent sensor
+    data, scores it, persists the result, and opens a work order if the
+    risk policy warrants one (see app.services.prediction_service).
 
     Raises (mapped to HTTP by app.api.error_handlers):
     - EquipmentNotFoundError -> 404
@@ -72,7 +90,9 @@ def predict(request: PredictRequest, db: Session = Depends(get_db)) -> PredictRe
         model_version=outcome.model_version,
         attributions=[
             FeatureAttributionResponse(
-                feature=a.feature, shap_value=a.shap_value, feature_value=a.feature_value
+                feature=a.feature,
+                shap_value=_json_safe_float(a.shap_value),
+                feature_value=_json_safe_float(a.feature_value),
             )
             for a in outcome.attributions
         ],

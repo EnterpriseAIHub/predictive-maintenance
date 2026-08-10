@@ -1,9 +1,16 @@
 """The Agent Contract endpoint.
 
 This is what lets a future platform-orchestrator repo treat this
-service identically to a RAG-based repo (e.g. maintenance-copilot) — same request/response shape regardless of what's happening internally (a trained ML model here, a retrieval pipeline elsewhere). See app/schemas/agent_contract.py for the shared shape.
+service identically to a RAG-based repo (e.g. maintenance-copilot) —
+same request/response shape regardless of what's happening internally
+(a trained ML model here, a retrieval pipeline elsewhere). See
+app/schemas/agent_contract.py for the shared shape.
 
-For this repo, the "query" is expected to be about one asset's risk; `context.equipment_id` is required. There's no natural-language query parsing here — this repo's AI is a classifier, not an LLM, so the "agent" framing is about the response shape, not about interpreting free text.
+For this repo, the "query" is expected to be about one asset's risk;
+`context.equipment_id` is required. There's no natural-language query
+parsing here — this repo's AI is a classifier, not an LLM, so the
+"agent" framing is about the response shape, not about interpreting
+free text.
 """
 
 from datetime import datetime
@@ -29,9 +36,15 @@ def handle_agent_request(request: AgentRequest, db: Session = Depends(get_db)) -
 
     outcome = run_prediction_for_equipment(db, equipment_id, as_of=as_of)
 
-    answer = f"Equipment '{equipment_id}' has a {outcome.probability:.0%} predicted failure risk (model {outcome.model_version})."
+    answer = (
+        f"Equipment '{equipment_id}' has a {outcome.probability:.0%} predicted failure risk "
+        f"(model {outcome.model_version})."
+    )
     if outcome.work_order:
-        answer += f" Work order {outcome.work_order.id} was opened at {outcome.work_order.priority.value} priority."
+        answer += (
+            f" Work order {outcome.work_order.id} was opened at "
+            f"{outcome.work_order.priority.value} priority."
+        )
     else:
         answer += " No work order was opened — risk is below the action threshold."
 
@@ -39,7 +52,8 @@ def handle_agent_request(request: AgentRequest, db: Session = Depends(get_db)) -
     # documents — here it's the SHAP attributions that justify the
     # prediction, in the same "list of evidence strings" shape.
     provenance = [
-        f"{a.feature}={a.feature_value:.2f} (shap={a.shap_value:+.3f})" for a in outcome.attributions
+        f"{a.feature}={a.feature_value:.2f} (shap={a.shap_value:+.3f})"
+        for a in outcome.attributions
     ]
 
     return AgentResponse(

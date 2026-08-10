@@ -1,7 +1,11 @@
 """Nightly batch scoring.
 
 Scores every known equipment asset once, reusing
-app.services.prediction_service.run_prediction_for_equipment — the exact same code path the real-time API uses. This is the concrete payoff of Phase 6's design: there is no separate "batch prediction logic" to keep in sync with the real-time path, because there isn't a second implementation at all.
+app.services.prediction_service.run_prediction_for_equipment — the
+exact same code path the real-time API uses. This is the concrete
+payoff of Phase 6's design: there is no separate "batch prediction
+logic" to keep in sync with the real-time path, because there isn't a
+second implementation at all.
 
 Run directly: `python -m app.batch.nightly_job`
 
@@ -27,7 +31,9 @@ logger = get_logger(__name__)
 
 def run_nightly_scoring(db: Session, as_of: datetime | None = None) -> list[PredictionOutcome]:
     """Scores every equipment asset. One asset's failure (e.g. a
-    transient error) does not abort the run for every other asset — each asset is scored independently, and a failure is logged and skipped rather than raised.
+    transient error) does not abort the run for every other asset —
+    each asset is scored independently, and a failure is logged and
+    skipped rather than raised.
     """
     as_of = as_of or datetime.now(UTC)
     outcomes: list[PredictionOutcome] = []
@@ -45,7 +51,9 @@ def run_nightly_scoring(db: Session, as_of: datetime | None = None) -> list[Pred
             # if it raised before reaching that commit, whatever it
             # flushed is still pending on this shared session).
             db.rollback()
-            logger.warning("batch_scoring_failed_for_equipment", equipment_id=equipment.id, exc_info=True)
+            logger.warning(
+                "batch_scoring_failed_for_equipment", equipment_id=equipment.id, exc_info=True
+            )
 
     logger.info(
         "batch_scoring_complete",

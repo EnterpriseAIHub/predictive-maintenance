@@ -1,6 +1,11 @@
-"""Prediction orchestration — ties together the data layer, the ML layer, and the work-order business rule into the one operation the API layer (Phase 8) and the batch job (Phase 9) will both call.
+"""Prediction orchestration — ties together the data layer, the ML
+layer, and the work-order business rule into the one operation the
+API layer (Phase 8) and the batch job (Phase 9) will both call.
 
-This module owns the transaction boundary: repositories only flush (see their docstrings from the data-layer milestone), and this function commits once, at the end, so the risk score and any wor order it triggers are written atomically together.
+This module owns the transaction boundary: repositories only flush
+(see their docstrings from the data-layer milestone), and this
+function commits once, at the end, so the risk score and any work
+order it triggers are written atomically together.
 """
 
 from dataclasses import dataclass
@@ -39,10 +44,14 @@ class PredictionOutcome:
 
 def _readings_to_dataframe(readings: list) -> pd.DataFrame:
     """ORM rows -> the plain DataFrame shape app.ml.features expects.
-    Keeps the ML layer's "no ORM objects" boundary intact — this conversion is the one place that boundary is crossed.
+    Keeps the ML layer's "no ORM objects" boundary intact (see the
+    architecture doc, §7) — this conversion is the one place that
+    boundary is crossed.
 
-    Columns are specified explicitly so an EMPTY reading list (a real case — e.g. a newly onboarded asset with no sensor history yet)
-    still produces a DataFrame with the columns build_feature_vector's contract requires, rather than a column-less empty frame that
+    Columns are specified explicitly so an EMPTY reading list (a real
+    case — e.g. a newly onboarded asset with no sensor history yet)
+    still produces a DataFrame with the columns build_feature_vector's
+    contract requires, rather than a column-less empty frame that
     raises KeyError the moment it's filtered by column name.
     """
     return pd.DataFrame(
@@ -60,8 +69,11 @@ def run_prediction_for_equipment(
     as_of: datetime | None = None,
     source: RiskScoreSource = RiskScoreSource.REAL_TIME,
 ) -> PredictionOutcome:
-    """The core prediction path: fetch data, build features, score, persist, and (if warranted) open a work order — one atomic
-    operation. Used by both the real-time API (Phase 8, default source=REAL_TIME) and the nightly batch job (Phase 9, source=BATCH) — same logic, same code path, only the persisted
+    """The core prediction path: fetch data, build features, score,
+    persist, and (if warranted) open a work order — one atomic
+    operation. Used by both the real-time API (Phase 8, default
+    source=REAL_TIME) and the nightly batch job (Phase 9,
+    source=BATCH) — same logic, same code path, only the persisted
     RiskScore.source differs.
     """
     equipment = equipment_repository.get_by_id(db, equipment_id)

@@ -20,13 +20,15 @@ def _seed_equipment(db, id_: str = "eq-1") -> None:
 
 
 def test_approve_returns_404_for_unknown_work_order(client):
-    response = client.post("/work-orders/does-not-exist/approve", json={"approved_by": "tech_alice"})
+    response = client.post(
+        "/work-orders/does-not-exist/approve", json={"approved_by": "tech_alice"}
+    )
     assert response.status_code == 404
 
 
 def test_approve_returns_409_when_no_pending_urgent_recommendation(client, db):
     _seed_equipment(db)
-    wo = work_order_service.create_work_order_for_prediction(db, "eq-1", 0.75, AS_OF)  # elevated only
+    wo = work_order_service.create_work_order_for_prediction(db, "eq-1", 0.75, AS_OF)  # elevated
     db.commit()
 
     response = client.post(f"/work-orders/{wo.id}/approve", json={"approved_by": "tech_alice"})

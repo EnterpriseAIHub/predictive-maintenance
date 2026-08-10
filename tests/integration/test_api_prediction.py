@@ -1,4 +1,4 @@
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 
 from app.data.models.equipment import Equipment
 from app.data.models.sensor_reading import SensorReading
@@ -94,6 +94,44 @@ def test_predict_works_for_equipment_with_zero_sensor_readings(client, db, monke
 
     assert response.status_code == 200
     assert response.json()["probability"] == 0.1
+
+
+def test_predict_serializes_nan_feature_values_as_json_null(client, db, monkeypatch):
+    """Regression test for a real bug found during Phase 12's Docker
+    verification: an attribution whose feature_value is NaN (a real,
+    legitimate state — see build_feature_vector's docstring on missing
+    sensor channels) must not crash the response. Starlette's
+    JSONResponse rejects raw NaN outright, which previously 500'd this
+    exact request instead of returning it with feature_value: null.
+    """
+    db.add(
+        Equipment(
+            id="eq-no-readings",
+            plant_id="plant-1",
+            type="conveyor_motor",
+            install_date=datetime(2026, 1, 1, tzinfo=UTC),
+            criticality_tier=1,
+        )
+    )
+    db.flush()
+
+    class _NanAttributionModel(_FakeModel):
+        def predict_with_explanation(self, feature_row, top_n=3):
+            return PredictionResult(
+                probability=self.probability,
+                model_version=self.version,
+                attributions=[
+                    FeatureAttribution("temperature_rolling_mean", float("nan"), float("nan"))
+                ],
+            )
+
+    monkeypatch.setattr(prediction_service, "get_model", lambda: _NanAttributionModel(0.05))
+
+    response = client.post("/predict", json={"equipment_id": "eq-no-readings", "as_of": AS_OF})
+
+    assert response.status_code == 200
+    assert response.json()["attributions"][0]["feature_value"] is None
+    assert response.json()["attributions"][0]["shap_value"] is None
 
 
 def test_get_latest_risk_returns_404_before_any_prediction(client, db):

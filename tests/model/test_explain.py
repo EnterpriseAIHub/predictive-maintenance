@@ -62,4 +62,6 @@ def test_feature_with_largest_magnitude_value_tends_to_dominate_a_clear_outlier(
     attributions = explain_prediction(booster, row, top_n=3)
 
     top_features = {a.feature for a in attributions}
-    assert "temperature_rolling_mean" in top_features or "temperature_rate_of_change" in top_features
+    assert (
+        "temperature_rolling_mean" in top_features or "temperature_rate_of_change" in top_features
+    )

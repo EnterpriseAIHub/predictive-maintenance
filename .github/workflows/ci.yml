@@ -1,0 +1,65 @@
+name: CI
+
+# Runs the same checks locally described in the README, automatically,
+# on every push/PR. Uses real Postgres and Redis service containers —
+# not mocks — consistent with how this repo's own tests are written.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: predictive_maintenance
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql+psycopg2://postgres:postgres@localhost:5432/predictive_maintenance
+      REDIS_URL: redis://localhost:6379/0
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt -r requirements-ml.txt -r requirements-dev.txt
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Apply database migrations
+        run: alembic upgrade head
+
+      - name: Run test suite
+        run: pytest

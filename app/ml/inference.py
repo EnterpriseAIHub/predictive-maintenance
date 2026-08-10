@@ -1,10 +1,16 @@
-"""The inference wrapper — the single ML-layer entry point the service layer (Phase 6) calls. Combines three things that were deliberately kept separate until now:
+"""The inference wrapper — the single ML-layer entry point the
+service layer (Phase 6) calls. Combines three things that were
+deliberately kept separate until now:
 
-- loading a registered model (and validating it matches the current-feature schema)
+- loading a registered model (and validating it matches the current
+  feature schema)
 - producing a calibrated probability
 - producing the SHAP-based explanation for that same prediction
 
-Loading is cached at module level (`get_model()`), so the booster is read from disk once per process, not once per request — the model itself is loaded once at startup and reused, per NFR2 (inference latency).
+Loading is cached at module level (`get_model()`), so the booster is
+read from disk once per process, not once per request — the model
+itself is loaded once at startup and reused, per NFR2 (inference
+latency).
 """
 
 import json
@@ -51,7 +57,9 @@ class PredictiveMaintenanceModel:
         row_df = pd.DataFrame([feature_row])[self.feature_columns]
         return float(self.booster.predict(row_df)[0])
 
-    def predict_with_explanation(self, feature_row: dict[str, float], top_n: int = 3) -> PredictionResult:
+    def predict_with_explanation(
+        self, feature_row: dict[str, float], top_n: int = 3
+    ) -> PredictionResult:
         probability = self.predict_proba(feature_row)
         attributions = explain_prediction(self.booster, feature_row, top_n=top_n)
         return PredictionResult(
@@ -77,7 +85,9 @@ def load_model(
 
     resolved_version = version or manifest.get("latest")
     if not resolved_version or resolved_version not in manifest.get("versions", {}):
-        raise ModelNotFoundError(f"Model version '{resolved_version}' not found in {manifest_path}.")
+        raise ModelNotFoundError(
+            f"Model version '{resolved_version}' not found in {manifest_path}."
+        )
 
     version_dir = registry_dir / resolved_version
     model_path = version_dir / "model.txt"
