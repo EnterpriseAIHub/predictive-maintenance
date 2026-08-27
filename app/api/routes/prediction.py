@@ -14,15 +14,13 @@ from pydantic import BaseModel, ConfigDict
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
-
-from app.services.errors import EquipmentNotFoundError
-from app.services.prediction_service import run_prediction_for_equipment
-
 from app.data.repositories import (
     equipment_repository,
     risk_score_repository,
     work_order_repository,
 )
+from app.services.errors import EquipmentNotFoundError
+from app.services.prediction_service import run_prediction_for_equipment
 
 router = APIRouter(tags=["prediction"])
 

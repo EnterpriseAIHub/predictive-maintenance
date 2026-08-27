@@ -11,14 +11,13 @@ session uses SQLAlchemy's SAVEPOINT-aware transaction mode.
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import text
 from sqlalchemy.orm import Session
-from app.data.base import Base, SessionLocal, engine
 
 from app.api.deps import get_db
 from app.data import models  # noqa: F401
-from app.data.base import SessionLocal, engine
+from app.data.base import Base, SessionLocal, engine
 from app.main import app
+
 
 @pytest.fixture
 def db() -> Session:
