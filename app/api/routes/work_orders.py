@@ -1,8 +1,3 @@
-"""Work order endpoints — currently just the urgent-priority approval
-action (FR4). This is the ONLY way an urgent recommendation becomes an
-actual URGENT-priority work order; see app.services.work_order_service.
-"""
-
 from datetime import datetime
 
 from fastapi import APIRouter, Depends

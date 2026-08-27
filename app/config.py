@@ -1,8 +1,7 @@
 """Runtime configuration, sourced from environment variables.
 
 Values are read once at import time and reused everywhere via the
-`settings` singleton below. Nothing in this repo should call
-`os.environ` directly outside this module.
+`settings` singleton below. 
 """
 
 from functools import lru_cache

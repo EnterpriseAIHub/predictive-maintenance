@@ -1,13 +1,3 @@
-"""Equipment table.
-
-Note: Equipment is a platform-owned reference entity (see
-app/schemas/equipment.py). This repo only reads it — it never
-creates or updates equipment rows itself — but it still needs the
-table locally since platform-data-contracts/a shared reference
-service don't exist yet (same standalone-runnability reason as the
-Pydantic schema).
-"""
-
 from datetime import datetime
 
 from sqlalchemy import DateTime, Integer, String

@@ -1,16 +1,3 @@
-"""Maps service-layer and ML-layer exceptions to HTTP responses.
-
-Route handlers call service functions and let these exceptions
-propagate — they don't catch them individually. This keeps the mapping
-from "business exception" to "HTTP status code" in exactly one place,
-so a new route never has to remember to handle
-EquipmentNotFoundError correctly; it's handled globally.
-
-Every handler here also logs — this is the centralized point where
-"a request failed, and here's why" becomes visible in the log stream,
-not just in the HTTP response.
-"""
-
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 

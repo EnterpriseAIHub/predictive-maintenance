@@ -1,11 +1,3 @@
-"""SQLAlchemy engine, session factory, and declarative base.
-
-This is the one place the database connection is configured. ORM
-models (added in a later phase, under `app/data/models/`) all inherit
-from `Base`; Alembic's `env.py` points at the same `Base.metadata` so
-migrations stay in sync with the models automatically.
-"""
-
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 

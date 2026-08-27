@@ -1,11 +1,6 @@
 """Offline training pipeline.
 
 Run directly: `python -m app.ml.training.train`
-
-Produces one new versioned entry under model/registry/: the trained
-LightGBM booster, the exact feature-column order it was trained on
-(so a later mismatch between training and serving columns fails loud,
-not silently), evaluation metrics, and a human-readable model card.
 """
 
 import json
@@ -27,10 +22,6 @@ from app.ml.training.dataset import generate_synthetic_training_data
 
 REGISTRY_DIR = settings.model_registry_dir
 
-# LightGBM parameters chosen for this problem: shallow-ish trees and a
-# modest learning rate suit a small, noisy, imbalanced tabular
-# dataset; is_unbalance handles the class imbalance natively rather
-# than requiring manual resampling (see the learning guide, §4).
 _MODEL_PARAMS = {
     "objective": "binary",
     "is_unbalance": True,

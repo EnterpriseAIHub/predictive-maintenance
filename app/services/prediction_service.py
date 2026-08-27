@@ -1,13 +1,3 @@
-"""Prediction orchestration — ties together the data layer, the ML
-layer, and the work-order business rule into the one operation the
-API layer (Phase 8) and the batch job (Phase 9) will both call.
-
-This module owns the transaction boundary: repositories only flush
-(see their docstrings from the data-layer milestone), and this
-function commits once, at the end, so the risk score and any work
-order it triggers are written atomically together.
-"""
-
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 

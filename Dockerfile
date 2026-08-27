@@ -1,10 +1,3 @@
-# Single-stage build: install deps → copy app + trained model → run
-# under uvicorn. The nightly batch job reuses this same image with a
-# different container command (`python -m app.batch.nightly_job`)
-# rather than a second Dockerfile — same code, different entrypoint,
-# per the architecture doc's Docker strategy.
-
-#FROM python:3.12-slim AS base
 FROM python:3.12-slim AS base
 
 RUN apt-get update \

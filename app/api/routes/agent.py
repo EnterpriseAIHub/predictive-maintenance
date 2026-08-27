@@ -1,18 +1,3 @@
-"""The Agent Contract endpoint.
-
-This is what lets a future platform-orchestrator repo treat this
-service identically to a RAG-based repo (e.g. maintenance-copilot) —
-same request/response shape regardless of what's happening internally
-(a trained ML model here, a retrieval pipeline elsewhere). See
-app/schemas/agent_contract.py for the shared shape.
-
-For this repo, the "query" is expected to be about one asset's risk;
-`context.equipment_id` is required. There's no natural-language query
-parsing here — this repo's AI is a classifier, not an LLM, so the
-"agent" framing is about the response shape, not about interpreting
-free text.
-"""
-
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException

@@ -1,11 +1,3 @@
-"""Sanity checks on the settings themselves — not testing pydantic-
-settings' own behavior, but catching a real, easy-to-make
-configuration mistake: if urgent_priority_threshold were ever set
-below failure_risk_threshold, risk_policy's logic would silently
-produce nonsensical recommendations (URGENT below the action
-threshold). This is cheap insurance against exactly that.
-"""
-
 from app.config import Settings, settings
 
 

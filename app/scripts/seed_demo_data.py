@@ -28,6 +28,11 @@ _NOW = datetime.now(UTC)
 # zero-readings edge case fixed as Bug 5 in Phase 8 — worth
 # demonstrating that it works correctly, not just that it doesn't
 # crash).
+#
+# P-101 and CB-200 use the same canonical equipment IDs as the
+# maintenance documentation in Project 2 so Project 3 can correlate
+# Project 1 risk data with Project 2 maintenance documentation without
+# requiring an equipment-ID mapping layer.
 _DEMO_ASSETS = [
     {
         "id": "demo-eq-healthy",
@@ -38,7 +43,7 @@ _DEMO_ASSETS = [
         "profile": "healthy",
     },
     {
-        "id": "demo-eq-degrading",
+        "id": "P-101",
         "plant_id": "demo-plant",
         "type": "hydraulic_pump",
         "install_date": _NOW - timedelta(days=900),
@@ -46,7 +51,7 @@ _DEMO_ASSETS = [
         "profile": "degrading",
     },
     {
-        "id": "demo-eq-borderline",
+        "id": "CB-200",
         "plant_id": "demo-plant",
         "type": "conveyor_motor",
         "install_date": _NOW - timedelta(days=600),
@@ -64,23 +69,35 @@ _DEMO_ASSETS = [
 ]
 
 _BASELINE = {"temperature": 70.0, "vibration": 0.5, "pressure": 100.0}
-_PROFILE_DRIFT = {"healthy": 0.0, "borderline": 0.5, "degrading": 1.5, "no_history": 0.0}
+_PROFILE_DRIFT = {
+    "healthy": 0.0,
+    "borderline": 0.5,
+    "degrading": 1.5,
+    "no_history": 0.0,
+}
 
 
-def _generate_readings(equipment_id: str, profile: str) -> list[SensorReading]:
+def _generate_readings(
+    equipment_id: str, profile: str
+) -> list[SensorReading]:
     if profile == "no_history":
         return []
 
     readings = []
     drift_scale = _PROFILE_DRIFT[profile]
-    for hours_ago in range(0, 168, 12):  # one reading every 12h across the 7-day window
+
+    for hours_ago in range(0, 168, 12):
+        # one reading every 12h across the 7-day window
         timestamp = _NOW - timedelta(hours=hours_ago)
+
         # Drift grows as we approach "now" — same shape as the training
         # data generator, so a live /predict against this asset produces
         # a result consistent with what the model was trained to recognize.
         recency_factor = (168 - hours_ago) / 168
+
         for sensor_type, baseline in _BASELINE.items():
             value = baseline + (drift_scale * recency_factor * 10)
+
             readings.append(
                 SensorReading(
                     equipment_id=equipment_id,
@@ -89,16 +106,22 @@ def _generate_readings(equipment_id: str, profile: str) -> list[SensorReading]:
                     value=value,
                 )
             )
+
     return readings
 
 
 def seed_demo_data() -> None:
     session = SessionLocal()
+
     try:
         created = 0
+
         for asset in _DEMO_ASSETS:
             if equipment_repository.get_by_id(session, asset["id"]) is not None:
-                logger.info("demo_asset_already_exists", equipment_id=asset["id"])
+                logger.info(
+                    "demo_asset_already_exists",
+                    equipment_id=asset["id"],
+                )
                 continue
 
             session.add(
@@ -110,16 +133,28 @@ def seed_demo_data() -> None:
                     criticality_tier=asset["criticality_tier"],
                 )
             )
-            for reading in _generate_readings(asset["id"], asset["profile"]):
+
+            for reading in _generate_readings(
+                asset["id"], asset["profile"]
+            ):
                 session.add(reading)
 
             created += 1
-            logger.info("demo_asset_seeded", equipment_id=asset["id"], profile=asset["profile"])
+
+            logger.info(
+                "demo_asset_seeded",
+                equipment_id=asset["id"],
+                profile=asset["profile"],
+            )
 
         session.commit()
+
         logger.info(
-            "seed_demo_data_complete", assets_created=created, assets_total=len(_DEMO_ASSETS)
+            "seed_demo_data_complete",
+            assets_created=created,
+            assets_total=len(_DEMO_ASSETS),
         )
+
     finally:
         session.close()
 

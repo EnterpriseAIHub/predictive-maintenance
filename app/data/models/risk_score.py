@@ -1,9 +1,3 @@
-"""Every prediction is persisted here, regardless of whether it
-crosses the action threshold (EDD §6/§18) — this history is what the
-future model-drift check and the orchestrator's daily briefing both
-read from.
-"""
-
 from datetime import datetime
 from enum import StrEnum
 

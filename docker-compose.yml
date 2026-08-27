@@ -1,19 +1,8 @@
-# The standalone compose file for this repo: `docker-compose up` needs
-# no other platform repo present (NFR1 / architecture doc principle
-# #1 — a recruiter can clone just this repo and run it). Its own
-# Postgres and Redis, not shared with any other repo's compose setup.
-#
-# (Previously misnamed docker-compose.override.yml — Compose treats
-# that filename as an overlay on a base docker-compose.yml, which
-# doesn't exist here, so `docker compose up` failed without an
-# explicit -f flag. Renamed in Phase 12 to match how it was always
-# meant to be used.)
-
 services:
   api:
     build: .
     ports:
-      - "8000:8000"
+      - "8001:8000"
     env_file:
       - .env
     environment:
@@ -36,8 +25,8 @@ services:
 
   cache:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
+    #ports:
+      # - "6379:6379"
 
 volumes:
   pm_db_data:

@@ -1,12 +1,3 @@
-"""Liveness and readiness endpoints.
-
-Readiness checks BOTH the database AND that a trained model is
-loaded — per the EDD's error handling: the API should refuse
-predictions with a 503 if the registered model failed to load rather
-than serving from a stale/partial state, and readiness should reflect
-that before any traffic is routed here.
-"""
-
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import text
 from sqlalchemy.orm import Session

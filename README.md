@@ -1,61 +1,67 @@
 # Predictive Maintenance
 
-Predicts near-term equipment failure risk from sensor data, explains *why*
-using SHAP, and routes high-risk predictions through a human-approval gate
-before anything gets marked urgent. Part of a larger Enterprise AI Platform
-(a GitHub-org multi-repo system) — this repo is fully standalone: it can be
-cloned and run with no other platform repo present.
+Predicts near-term equipment failure risk from sensor data, explains *why* using SHAP, and routes high-risk predictions through a human-approval gate before anything gets marked urgent. Part of a larger Enterprise AI Platform (a GitHub-org multi-repo system) — this repo is fully standalone: it can be cloned and run with no other platform repo present.
 
-**Status: feature-complete and deployment-ready.** Real-time API, nightly
-batch scoring, SHAP explainability, event publishing, structured
-observability, 91 passing tests at 97% coverage, and CI — all built and
-verified end to end. See [`PROJECT_HANDBOOK.md`](./PROJECT_HANDBOOK.md) for
-the full technical deep dive (architecture, every design decision, every
-bug found and fixed, interview prep) and
-[`DEPLOYMENT.md`](./DEPLOYMENT.md) for deploying it.
+**Status: feature-complete and deployment-ready.** 
+- Real-time equipment risk prediction
+- Nightly batch scoring
+- SHAP-based explainability
+- Human approval workflow for urgent work orders
+- Redis event publishing
+- Structured JSON logging
+- PostgreSQL persistence
+- Dockerized deployment
+- Automated CI
+- Comprehensive unit, integration, model, and contract tests
 
 ## What makes this worth a closer look
 
-- **Train/serve skew is structurally impossible, not just avoided.** One
-  pure function (`build_feature_vector`) is the only feature-engineering
-  code path — training, the real-time API, and the nightly batch job all
-  call it, so there's no second implementation to drift out of sync.
-- **SHAP correctness is actually tested**, not just wired up: a property
-  test verifies `expected_value + Σ(shap_values) == the model's real
-  prediction` against a genuinely trained model.
-- **A real human-approval gate**, not a checkbox: the system can *never*
-  persist `priority=URGENT` as a direct result of a prediction — only one
-  function, called only by a human action, can do that.
-- **Every bug in this repo's history is documented with its real root
-  cause** in the handbook (Chapter 24) — including two found only by
-  actually running the built Docker image rather than trusting a 91-test,
-  97%-coverage suite to be sufficient proof of deployability.
+- **Train/serve skew is structurally impossible, not just avoided.** One pure function (`build_feature_vector`) is the only feature-engineering code path — training, the real-time API, and the nightly batch job all call it, so there's no second implementation to drift out of sync.
+
+- **SHAP correctness is actually tested**, not just wired up: a property test verifies `expected_value + Σ(shap_values) == the model's real prediction` against a genuinely trained model.
+
+- **A real human-approval gate**, not a checkbox: the system can *never* persist `priority=URGENT` as a direct result of a prediction — only one function, called only by a human action, can do that.
 
 ## Architecture
 
-```
-API layer        →  Service layer          →  ML layer         →  Data layer
-(FastAPI routes)    (business rules,           (feature eng,       (Postgres via
-                     the approval gate,         SHAP, model         SQLAlchemy)
-                     owns transactions)         inference)
-                            ↓
-                     Events layer (Redis Streams, best-effort)
-```
+```text
+API Layer
+   │
+   ▼
+Service Layer
+   │
+   ├── Risk Policy
+   ├── Work Order Management
+   └── Human Approval Gate
+   │
+   ▼
+ML Layer
+   │
+   ├── Feature Engineering
+   ├── Model Inference
+   └── SHAP Explainability
+   │
+   ▼
+Data Layer
+   │
+   └── PostgreSQL / SQLAlchemy
 
-Full layering rationale, every design decision, and the platform-wide
-context in `PROJECT_HANDBOOK.md`, Chapters 3 and 20.
+Events Layer
+   │
+   └── Redis Streams
 
 ## Quick start
 
 ```bash
 cp .env.example .env
+
 docker compose up --build
 
 # in another terminal, once the api service is healthy:
 docker compose exec api alembic upgrade head
 docker compose exec api python -m app.scripts.seed_demo_data
 
-curl http://localhost:8000/health/ready
+curl http://localhost:8001/health/ready
 ```
 
 See [`DEMO.md`](./DEMO.md) for a guided walkthrough hitting every endpoint
@@ -82,7 +88,7 @@ pytest
 ```
 
 91 tests across four categories (`unit`, `integration`, `model`,
-`contract`) — see Chapter 15 of the handbook for what each covers and why.
+`contract`) - covering unit, integration, model, and API contract behavior.
 CI (`.github/workflows/ci.yml`) runs the same checks against real Postgres
 and Redis containers on every push.
 
@@ -116,14 +122,11 @@ alembic/                   # database migrations
 tests/                      # unit / integration / model / contract
 model/registry/              # trained model artifacts, baked into the Docker image
 render.yaml, DEPLOYMENT.md   # deployment configuration
-PROJECT_HANDBOOK.md          # full technical + interview/resume reference
+
 ```
 
 ## Further reading
 
-- [`PROJECT_HANDBOOK.md`](./PROJECT_HANDBOOK.md) — architecture, every
-  phase's history, every bug found and fixed, 30+ interview questions,
-  resume talking points.
 - [`DEPLOYMENT.md`](./DEPLOYMENT.md) — deploying to Render, and the
   documented trade-offs (model baked into the image, no live retraining
   hot-swap).

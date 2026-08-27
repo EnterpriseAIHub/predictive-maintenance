@@ -14,9 +14,15 @@ from pydantic import BaseModel, ConfigDict
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
-from app.data.repositories import equipment_repository, risk_score_repository
+
 from app.services.errors import EquipmentNotFoundError
 from app.services.prediction_service import run_prediction_for_equipment
+
+from app.data.repositories import (
+    equipment_repository,
+    risk_score_repository,
+    work_order_repository,
+)
 
 router = APIRouter(tags=["prediction"])
 
@@ -70,6 +76,7 @@ class RiskScoreResponse(BaseModel):
     model_version: str
     source: str
     created_at: datetime
+    work_order: WorkOrderResponse | None = None
 
 
 @router.post("/predict", response_model=PredictResponse)
@@ -130,10 +137,35 @@ def get_latest_risk(equipment_id: str, db: Session = Depends(get_db)) -> RiskSco
             status_code=404, detail=f"No predictions have been recorded yet for '{equipment_id}'."
         )
 
+    open_work_orders = work_order_repository.get_open_for_equipment(
+        db, equipment_id
+    )
+
+    work_order = max(
+        open_work_orders,
+        key=lambda wo: wo.created_at,
+        default=None,
+    )
+
     return RiskScoreResponse(
         equipment_id=risk_score.equipment_id,
         probability=risk_score.probability,
         model_version=risk_score.model_version,
         source=risk_score.source.value,
         created_at=risk_score.created_at,
+        work_order=(
+            WorkOrderResponse(
+                id=work_order.id,
+                priority=work_order.priority.value,
+                recommended_priority=(
+                    work_order.recommended_priority.value
+                    if work_order.recommended_priority
+                    else None
+                ),
+                status=work_order.status.value,
+                created_at=work_order.created_at,
+            )
+            if work_order
+            else None
+        ),
     )

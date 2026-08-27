@@ -1,15 +1,3 @@
-"""Work-order business logic: creating a work order from a risk
-assessment, and the urgent-priority approval gate (FR4).
-
-FR4, concretely: the system never persists `priority=URGENT` as a
-direct result of a prediction. When the risk policy recommends
-URGENT, the work order is created with `priority=ELEVATED` and
-`recommended_priority=URGENT` — a human must call
-`approve_urgent_priority` to actually escalate it. This function is
-the ONLY code path that writes `priority=URGENT`; there is no
-shortcut around it elsewhere in this service.
-"""
-
 import uuid
 from datetime import UTC, datetime
 

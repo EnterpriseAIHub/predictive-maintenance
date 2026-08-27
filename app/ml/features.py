@@ -1,24 +1,9 @@
-"""Shared feature engineering — the ONE function training and both
-inference paths (real-time, batch) all call, which is what makes
-train/serve skew impossible rather than just unlikely.
-
-Pure function: takes plain data in, returns a plain dict out. No DB,
-no HTTP, no ORM objects — that's what makes it testable in isolation
-and reusable identically from every caller.
-"""
-
 from datetime import datetime
 
 import pandas as pd
 
-# Fixed set of sensor channels this model expects. A reading whose
-# sensor_type isn't in this tuple is simply not used — new channels
-# require an intentional model retrain, not a silent feature change.
 EXPECTED_SENSOR_TYPES = ("temperature", "vibration", "pressure")
 
-# Canonical, ordered feature list. Both training and inference build
-# their feature rows in exactly this order — this constant is the
-# actual train/serve contract, not just documentation of it.
 FEATURE_COLUMNS = [
     f"{sensor}_{stat}"
     for sensor in EXPECTED_SENSOR_TYPES
